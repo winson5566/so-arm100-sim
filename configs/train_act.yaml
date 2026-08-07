@@ -3,13 +3,23 @@
 # Run with:
 #   .venv/bin/lerobot-train --config_path=configs/train_act.yaml
 #
-# For a quick smoke test (few steps, CPU):
-#   .venv/bin/lerobot-train --config_path=configs/train_act.yaml --steps=20 --policy.device=cpu
+# NOTE: images are resized to 224x224 before the ResNet backbone. This is what
+# the ACT paper does; without it LeRobot feeds the raw 640x480 frames to
+# ResNet, making training ~3.6x slower (measured 1.9 -> 6.7 steps/s on MPS).
+# eval_act.py applies the same resize by default, so train/eval stay consistent.
 dataset:
   repo_id: local/so_arm100_pick
   root: data/local/so_arm100_pick
   # Hold out a fraction of episodes for offline eval loss.
   eval_split: 0.0
+  image_transforms:
+    enable: true
+    max_num_transforms: 1
+    tfs:
+      resize:
+        type: Resize
+        kwargs:
+          size: [224, 224]
 
 policy:
   type: act

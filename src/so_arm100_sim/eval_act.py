@@ -14,6 +14,7 @@ from pathlib import Path
 import einops
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from lerobot.policies import make_pre_post_processors
 from lerobot.policies.act.modeling_act import ACTPolicy
@@ -21,7 +22,9 @@ from lerobot.policies.act.modeling_act import ACTPolicy
 from .env import EnvConfig, SoArm100PickEnv, TASK_STR
 
 
-def obs_to_batch(obs: dict, cameras: tuple[str, ...], device: str) -> dict[str, torch.Tensor]:
+def obs_to_batch(
+    obs: dict, cameras: tuple[str, ...], device: str, resize: int = 224
+) -> dict[str, torch.Tensor]:
     """Convert env observations to the batch format expected by the policy."""
     batch: dict[str, torch.Tensor] = {
         "observation.state": torch.from_numpy(obs["observation.state"]).float().unsqueeze(0).to(device)
@@ -29,6 +32,8 @@ def obs_to_batch(obs: dict, cameras: tuple[str, ...], device: str) -> dict[str, 
     for cam in cameras:
         img = torch.from_numpy(obs[f"observation.images.{cam}"]).float()
         img = einops.rearrange(img, "h w c -> 1 c h w") / 255.0
+        if resize:
+            img = F.interpolate(img, size=(resize, resize), mode="bilinear", align_corners=False)
         batch[f"observation.images.{cam}"] = img.to(device)
     return batch
 
@@ -42,6 +47,7 @@ def run_eval(
     record_video: bool = True,
     seed: int = 0,
     cube_jitter: float = 0.01,
+    resize: int = 224,
 ) -> dict:
     checkpoint_dir = Path(checkpoint_dir)
     policy = ACTPolicy.from_pretrained(checkpoint_dir)
@@ -67,7 +73,7 @@ def run_eval(
         for step in range(max_steps):
             if record_video:
                 ep_frames.append(obs["observation.images.top"])
-            batch = obs_to_batch(obs, cameras, device)
+            batch = obs_to_batch(obs, cameras, device, resize=resize)
             batch = preprocessor(batch)
             with torch.inference_mode():
                 action = policy.select_action(batch)
@@ -118,6 +124,12 @@ def main() -> None:
         default=0.01,
         help="Uniform cube position jitter in meters (default 0.01 = +/-1cm)",
     )
+    parser.add_argument(
+        "--resize",
+        type=int,
+        default=224,
+        help="Resize camera images to NxN before the policy (must match training; 0 disables)",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     run_eval(
@@ -128,6 +140,7 @@ def main() -> None:
         record_video=not args.no_video,
         seed=args.seed,
         cube_jitter=args.cube_jitter,
+        resize=args.resize,
     )
 
 

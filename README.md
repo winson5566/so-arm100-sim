@@ -91,6 +91,7 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 ### ACT 训练
 
 - **ACT 论文配方(Transfer Cube,约 90% 成功率)**:50 个演示、2000 epochs、batch 8。对应到本数据集为 `steps = 2000 × ceil(总帧数/8)`。
+- **图像缩放是必须的**:LeRobot 的 ACT 会把数据集图像原分辨率喂给 ResNet。本项目数据集是 640×480,若不做缩放,ResNet18 的计算量约为 224×224 输入的 6 倍。配置里已用 `image_transforms` 统一缩到 **224×224**(ACT 论文的标准做法),实测 MPS 上从 **1.9 步/秒提升到约 6.7 步/秒**。评估脚本默认做同样的缩放,训练/评估保持一致。
 - 训练阶段用 `dataset.eval_split` 留出部分回合评估泛化;本项目演示配置为 0。
 - 评估时在仿真闭环中统计成功率,而不是只看训练损失。
 
@@ -118,7 +119,8 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
    ```
 
 2. 训练配置 `configs/train_act.yaml` 已按配方设置:`batch_size=8`、
-   2000 epochs 对应的总步数、`resnet18` 骨干、`dim_model=256`。
+   2000 epochs 对应的总步数(11,884,000)、`resnet18` 骨干、`dim_model=256`、
+   图像 224×224。
    运行:
 
    ```bash
@@ -131,12 +133,21 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
    make eval
    ```
 
-> **硬件说明**:本机为 Apple Silicon(MPS)。实测训练吞吐约 1.5–3 步/秒,
-> 2000 epochs(约 1150 万步)需要数周至数月,不适合本机完整跑完。要复现论文的
+> **硬件说明**:本机为 Apple Silicon(MPS),图像 224×224 时实测约 6.7 步/秒。
+> 2000 epochs(1188 万步)在本机约需 **3 周**,不建议完整跑;要复现论文的
 > ~90% 成功率,建议把本仓库拷贝到带 NVIDIA GPU 的机器/云主机上,执行同样的
 > `make collect50 && make train && make eval`(配置里 `policy.device` 会自动选择
-> `cuda`,无需改代码)。本机训练仍会正常保存 checkpoint,可随时用
-> `--resume true` 续跑。
+> `cuda`,无需改代码)。
+>
+> 若想先在本机验证策略能不能学会抓取,可先跑 100–200 epochs(约 1–2 天):
+>
+> ```bash
+> .venv/bin/lerobot-train --config_path=configs/train_act.yaml --steps=594200
+> # 150 epochs: --steps=891300
+> ```
+>
+> 社区经验(SO-100 简单 pick-place、50 演示)通常 100–150 epochs 即可获得
+> 较高的闭环成功率,2000 epochs 是为了逼近论文的 ~90% 上界。
 
 ## 常见问题
 
