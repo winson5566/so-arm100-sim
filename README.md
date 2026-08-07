@@ -92,6 +92,8 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 
 - **ACT 论文配方(Transfer Cube,约 90% 成功率)**:50 个演示、2000 epochs、batch 8。对应到本数据集为 `steps = 2000 × ceil(总帧数/8)`。
 - **图像缩放是必须的**:LeRobot 的 ACT 会把数据集图像原分辨率喂给 ResNet。本项目数据集是 640×480,若不做缩放,ResNet18 的计算量约为 224×224 输入的 6 倍。配置里已用 `image_transforms` 统一缩到 **224×224**(ACT 论文的标准做法),实测 MPS 上从 **1.9 步/秒提升到约 6.7 步/秒**。评估脚本默认做同样的缩放,训练/评估保持一致。
+- **temporal ensembling(论文 Algo. 2)**:ACT 论文推理时用系数 0.01 对动作块做指数加权平均,能显著提升闭环稳定性。配置已开启(`temporal_ensemble_coeff: 0.01`、`n_action_steps: 1`),评估脚本会在每一步查询策略并做集成。
+- **模型规模**:LeRobot 官方 ACTConfig 默认是 `dim_model=512 / n_heads=8 / dim_feedforward=3200`(~80M 参数,论文 ~90% 结果的基础)。本机 MPS 为了速度用 `256 / 4 / 1600`(21M 参数);跑 GPU 时请用官方规模,见下节。
 - 训练阶段用 `dataset.eval_split` 留出部分回合评估泛化;本项目演示配置为 0。
 - 评估时在仿真闭环中统计成功率,而不是只看训练损失。
 
@@ -132,6 +134,19 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
    ```bash
    make eval
    ```
+
+### 官方规模(GPU)复现
+
+`configs/train_act_gpu.yaml` 使用 LeRobot/ACT 论文的官方默认规模
+(`dim_model=512`、`n_heads=8`、`dim_feedforward=3200`,约 52M 参数)并开启
+CUDA 上的 AMP(fp16 自动混合精度)与 temporal ensembling:
+
+```bash
+.venv/bin/lerobot-train --config_path=configs/train_act_gpu.yaml
+# 评估该 checkpoint:
+PYTHONPATH=src .venv/bin/python -m so_arm100_sim.scripts.eval_act \
+  --checkpoint outputs/train_act_gpu/checkpoints/last/pretrained_model
+```
 
 > **硬件说明**:本机为 Apple Silicon(MPS),图像 224×224 时实测约 6.7 步/秒。
 > 2000 epochs(1188 万步)在本机约需 **3 周**,不建议完整跑;要复现论文的

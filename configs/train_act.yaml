@@ -28,7 +28,11 @@ policy:
   device: mps
   n_obs_steps: 1
   chunk_size: 100
-  n_action_steps: 100
+  # Official ACT inference uses temporal ensembling (Algo. 2 of the paper,
+  # coefficient 0.01), which queries the policy every step and averages action
+  # chunks. LeRobot requires n_action_steps=1 when temporal ensembling is on.
+  n_action_steps: 1
+  temporal_ensemble_coeff: 0.01
   vision_backbone: resnet18
   pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
   dim_model: 256

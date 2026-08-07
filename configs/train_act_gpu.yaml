@@ -1,0 +1,64 @@
+# ACT at the official LeRobot / ACT-paper scale, intended for a CUDA GPU.
+#
+# Differences vs train_act.yaml (which is tuned for Apple Silicon MPS):
+#   - model size: dim_model 512 / n_heads 8 / dim_feedforward 3200
+#     (exactly the LeRobot ACTConfig defaults; ~80M params, the config the
+#     paper's ~90% Transfer Cube result is based on)
+#   - use_amp: true (fp16 autocast; LeRobot auto-disables it on non-CUDA)
+#   - temporal ensembling on (paper Algo. 2, coeff 0.01)
+#   - more frequent checkpoints (disk is cheaper than on a laptop)
+#
+# Same recipe as the paper: 50 demos, 2000 epochs, batch 8.
+dataset:
+  repo_id: local/so_arm100_pick
+  root: data/local/so_arm100_pick
+  eval_split: 0.0
+  image_transforms:
+    enable: true
+    max_num_transforms: 1
+    tfs:
+      resize:
+        type: Resize
+        kwargs:
+          size: [224, 224]
+
+policy:
+  type: act
+  push_to_hub: false
+  device: cuda
+  use_amp: true
+  n_obs_steps: 1
+  chunk_size: 100
+  n_action_steps: 1
+  temporal_ensemble_coeff: 0.01
+  vision_backbone: resnet18
+  pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
+  dim_model: 512
+  n_heads: 8
+  dim_feedforward: 3200
+  n_encoder_layers: 4
+  n_decoder_layers: 1
+  use_vae: true
+  latent_dim: 32
+  n_vae_encoder_layers: 4
+  dropout: 0.1
+  kl_weight: 10.0
+  optimizer_lr: 1e-5
+  optimizer_lr_backbone: 1e-5
+  optimizer_weight_decay: 1e-4
+
+steps: 11884000
+batch_size: 8
+num_workers: 8
+prefetch_factor: 2
+persistent_workers: true
+log_freq: 1000
+save_freq: 50000
+env_eval_freq: 0
+eval_steps: 0
+seed: 1000
+output_dir: outputs/train_act_gpu
+use_policy_training_preset: true
+
+wandb:
+  enable: false
