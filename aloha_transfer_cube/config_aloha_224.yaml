@@ -1,0 +1,32 @@
+# ALOHA Transfer Cube ACT training with 224x224 images.
+#
+# NOTE: measured on MPS, resizing only improves throughput from ~1.52 to
+# ~1.75 steps/s (~15%). For the 512-dim ALOHA model the bottleneck is the
+# transformer on MPS, not the ResNet backbone (unlike the smaller SO-ARM100
+# model where 224x224 gave ~3.6x). Keeping this for reference; the faithful
+# 640x480 config in train.sh is the recommended path.
+dataset:
+  repo_id: lerobot/aloha_sim_transfer_cube_human
+  image_transforms:
+    enable: true
+    max_num_transforms: 1
+    tfs:
+      resize:
+        type: Resize
+        kwargs:
+          size: [224, 224]
+
+policy:
+  type: act
+  push_to_hub: false
+  device: mps
+
+env:
+  type: aloha
+  task: AlohaTransferCube-v0
+
+steps: 80000
+batch_size: 8
+save_freq: 10000
+log_freq: 1000
+output_dir: outputs/act_aloha_transfer_80k_224
