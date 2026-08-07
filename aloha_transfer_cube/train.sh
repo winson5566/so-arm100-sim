@@ -7,4 +7,5 @@ exec ../.venv-aloha/bin/lerobot-train \
   --policy.type=act --policy.push_to_hub=false --policy.device="$DEVICE" \
   --env.type=aloha --env.task=AlohaTransferCube-v0 \
   --steps=80000 --batch_size=8 --save_freq=10000 --log_freq=1000 \
+  --env_eval_freq=0 --eval_steps=0 \
   --output_dir=outputs/act_aloha_transfer_80k
