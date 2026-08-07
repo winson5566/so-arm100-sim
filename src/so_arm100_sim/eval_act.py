@@ -78,18 +78,24 @@ def run_eval(
         video_cam_id = env.model.camera(video_camera).id
     except Exception:
         video_cam_id = env.camera_ids[cameras[0]]
-    video_frames: list[np.ndarray] = []
+    out_dir = Path("outputs") / f"eval_{Path(checkpoint_dir).stem}"
+    if record_video:
+        out_dir.mkdir(parents=True, exist_ok=True)
     successes = 0
     results = []
 
     for ep in range(n_episodes):
         obs = env.reset()
         policy.reset()
-        ep_frames = []
+        ep_writer = None
+        if record_video:
+            ep_path = out_dir / f"episode_{ep:03d}.mp4"
+            import imageio.v2 as imageio
+            ep_writer = imageio.get_writer(ep_path, fps=env.cfg.fps, codec="libx264", quality=7)
         done = False
         for step in range(max_steps):
             if record_video:
-                ep_frames.append(env.render(video_cam_id))
+                ep_writer.append_data(env.render(video_cam_id))
             batch = obs_to_batch(obs, cameras, device, resize=resize)
             batch = preprocessor(batch)
             with torch.inference_mode():
@@ -102,29 +108,20 @@ def run_eval(
                 break
         successes += int(info["success"])
         results.append({"episode": ep, "success": bool(info["success"]), "steps": env.step_count})
-        if ep == 0 and record_video and ep_frames:
-            video_frames = ep_frames
+        if record_video:
+            ep_writer.close()
+            # Keep a canonical rollout.mp4 for the first episode (backwards
+            # compatible with existing docs/scripts).
+            if ep == 0:
+                import shutil
+                shutil.copyfile(ep_path, out_dir / "rollout.mp4")
+            print(f"video saved: {ep_path}")
         print(f"episode {ep}: success={info['success']} steps={env.step_count}")
-
-    if record_video and video_frames:
-        out_dir = Path("outputs") / f"eval_{Path(checkpoint_dir).stem}"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        _write_mp4(video_frames, out_dir / "rollout.mp4", fps=env.cfg.fps)
-        print(f"rollout video saved to {out_dir / 'rollout.mp4'}")
 
     env.close()
     summary = {"success_rate": successes / n_episodes, "results": results}
     print(f"success rate: {successes}/{n_episodes}")
     return summary
-
-
-def _write_mp4(frames: list[np.ndarray], path: Path, fps: int = 30) -> None:
-    import imageio.v2 as imageio
-
-    writer = imageio.get_writer(path, fps=fps, codec="libx264", quality=7)
-    for frame in frames:
-        writer.append_data(frame)
-    writer.close()
 
 
 def main() -> None:

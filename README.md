@@ -69,7 +69,8 @@ make train             # .venv/bin/lerobot-train --config_path=configs/train_act
 make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrained_model
 ```
 
-评估结果写入 `outputs/eval_*/rollout.mp4`,控制台报告成功率。
+评估结果写入 `outputs/eval_*/`:**每个回合各一份 `episode_XXX.mp4`**(第三人称
+视角),第一个回合同时复制为 `rollout.mp4` 方便查看;控制台报告成功率。
 
 推荐用封装脚本(支持快速模式,中途检查更快):
 
