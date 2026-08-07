@@ -115,7 +115,7 @@
                 <!-- Part wrist_roll_follower_so101_v1 -->
                 <geom type="mesh" class="visual" pos="5.55112e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
                 <!-- Fixed finger of the parallel-jaw gripper (short fingers) -->
-                <geom type="box" size="0.01 0.014 0.012" pos="-0.045 0 -0.03" material="sts3215_03a_v1_material"/>
+                <geom type="box" size="0.01 0.014 0.012" pos="-0.045 0 -0.03" material="sts3215_03a_v1_material" friction="2 0.01 0.001"/>
                 <!-- Frame gripper -->
                 <site group="3" name="gripper" pos="-0.0079 -0.000218121 -0.0981274" quat="0.5 -0.5 0.5 -0.5"/>
                 <!-- Link moving_jaw_so101_v1 -->
@@ -124,7 +124,7 @@
                   <joint axis="1 0 0" name="6" type="slide" range="-0.045 0.045" class="gripper_joint"/>
                   <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07"/>
                   <!-- Moving finger of the parallel-jaw gripper -->
-                  <geom type="box" size="0.01 0.014 0.012" pos="0 0 0" material="sts3215_03a_v1_material"/>
+                  <geom type="box" size="0.01 0.014 0.012" pos="0 0 0" material="sts3215_03a_v1_material" friction="2 0.01 0.001"/>
                 </body>
               </body>
             </body>

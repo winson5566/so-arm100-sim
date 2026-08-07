@@ -6,7 +6,7 @@ import argparse
 
 import numpy as np
 
-from ..baseline import PickPlaceController
+from ..baseline import SmoothPickPlaceController
 from ..env import EnvConfig, SoArm100PickEnv
 
 
@@ -16,17 +16,27 @@ def main() -> None:
     parser.add_argument("--video", default="outputs/baseline.mp4")
     parser.add_argument("--no-video", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--video-camera",
+        default="view",
+        help="Camera used for the video (default: 'view', a third-person view)",
+    )
     args = parser.parse_args()
 
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     env = SoArm100PickEnv(EnvConfig(cameras=cameras, seed=args.seed))
-    controller = PickPlaceController(env)
+    controller = SmoothPickPlaceController(env)
 
     frames = []
     orig_step = env.step
     if not args.no_video:
+        try:
+            video_cam_id = env.model.camera(args.video_camera).id
+        except Exception:
+            video_cam_id = env.camera_ids[cameras[0]]
+
         def step_with_frames(self, action: np.ndarray):
-            frames.append(env.get_observation()[f"observation.images.{cameras[0]}"])
+            frames.append(env.render(video_cam_id))
             return orig_step(action)
         import types
         env.step = types.MethodType(step_with_frames, env)

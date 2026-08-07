@@ -12,7 +12,7 @@ assets/so_arm100/              官方 SO-101 MJCF + 网格(带 Apache-2.0 许可
 src/so_arm100_sim/
   ├─ env.py                     MuJoCo 环境(状态/图像观测、动作、成功判定)
   ├─ ik.py                      阻尼最小二乘 IK(+腕部翻滚偏置)
-  ├─ baseline.py                脚本化抓取控制器(演示数据来源)
+  ├─ baseline.py                脚本化抓取控制器(演示数据来源,含平滑轨迹版)
   ├─ collect.py                 采集演示 → LeRobot 数据集
   ├─ eval_act.py                加载 ACT checkpoint 在仿真中评估 + 录制视频
   └─ scripts/                   CLI 入口
@@ -88,6 +88,9 @@ scripts/eval_act.sh outputs/train_act_50ep_100k/checkpoints/025000/pretrained_mo
 - **动作空间(6D)**:5 个臂关节的绝对角度(rad)+ 夹爪目标 `[0,1]`(0=闭合,1=张开),与 LeRobot 的 SO-100/101 约定一致。
 - **观测**:`observation.state`(6D)+ 相机图像 `observation.images.top`(可加 `wrist`)。
 - **成功判定**:方块先被提起,再被释放到目标区(半径 5 cm)。
+- **任务几何**:方块默认在 (0.02,-0.34),目标区在 (0.15,-0.20)(约 18 cm 运输
+  距离)。早期版本目标区离方块只有 4.5 cm,方块一开始就在目标圈内,任务过简,
+  已修正。
 - **夹爪**:官方 MJCF 的关节夹爪行程不足以可靠抓取 3 cm 方块,且 LeRobot 官方文档建议将 SO-ARM100 夹爪表示为线性关节(0=闭合、100=张开),因此本项目将夹爪改为**线性平行爪**(滑轨 ±4.5 cm),保留官方机械臂其余部分。
 
 ## 最佳实践
@@ -96,6 +99,9 @@ scripts/eval_act.sh outputs/train_act_50ep_100k/checkpoints/025000/pretrained_mo
 
 - 单任务建议 **50–200 个演示**;回合数越多,ACT 泛化越好。本项目默认 20 个用于快速验证。
 - 在真实/仿真采集时,演示应覆盖目标位置的小范围抖动(`--cube-jitter 0.01` 等),否则策略只会记忆固定轨迹。
+- 演示轨迹使用**平滑 Bézier 曲线**(`SmoothPickPlaceController`):接近和放置是
+  连续抛物线,而非“上升→平移→下降”的折线,更接近真人遥操作;回合约 520–540
+  步(旧版约 924 步)。
 - 相机越多越好(推荐 `--cameras top,wrist`),代价是训练更慢、数据更大。
 - 视频编码默认 `h264_videotoolbox`(macOS 硬件编码);磁盘敏感可改 `--video-codec libsvtav1`(小)。
 - 每个回合写成独立小 MP4 文件、关键帧间隔 1 s(`g=30`),训练时随机取帧比单个大文件快得多。

@@ -1,0 +1,4 @@
+ERROR mjv_cameraInModel (engine_vis_interact.c:105) Fri Aug  7 18:23:31 2026: mjvScene frustum_near too small
+
+ERROR mjv_cameraInModel (engine_vis_interact.c:105) Fri Aug  7 18:23:39 2026: mjvScene frustum_near too small
+

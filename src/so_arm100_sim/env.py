@@ -59,7 +59,10 @@ class EnvConfig:
     table_top_z: float = 0.0
     cube_default_xy: tuple[float, float] = (0.02, -0.34)
     cube_size: float = 0.03
-    target_xy: tuple[float, float] = (0.06, -0.36)
+    # Target ~18cm from the cube's default position so the task requires a
+    # real transport move (the old target was only 4.5cm away, inside the 5cm
+    # success radius -> the cube started inside the goal zone).
+    target_xy: tuple[float, float] = (0.15, -0.20)
     target_radius: float = 0.05
     # Randomization.
     cube_jitter: float = 0.0

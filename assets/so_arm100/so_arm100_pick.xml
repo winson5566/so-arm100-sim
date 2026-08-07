@@ -35,7 +35,7 @@
     <!-- Cube to grasp. Position/pose is randomized by the environment on reset. -->
     <body name="cube" pos="0.02 -0.34 0.015" quat="1 0 0 0">
       <freejoint name="cube_joint" />
-      <geom name="cube_geom" type="box" size="0.015 0.015 0.015" material="cube_mat" mass="0.03" friction="0.9 0.01 0.001" />
+      <geom name="cube_geom" type="box" size="0.015 0.015 0.015" material="cube_mat" mass="0.03" friction="2 0.01 0.001" />
     </body>
 
     <!-- Target zone marker on the ground. -->

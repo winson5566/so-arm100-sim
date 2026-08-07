@@ -21,7 +21,7 @@ import numpy as np
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.configs.video import RGBEncoderConfig
 
-from .baseline import PickPlaceController
+from .baseline import SmoothPickPlaceController
 from .env import EnvConfig, SoArm100PickEnv, TASK_STR
 
 
@@ -60,7 +60,9 @@ def collect_dataset(
     """
     cfg = EnvConfig(cameras=cameras, cube_jitter=cube_jitter, seed=seed)
     env = SoArm100PickEnv(cfg)
-    controller = PickPlaceController(env)
+    # Smooth parabolic trajectories (human-like) produce faster, more natural
+    # demonstrations for ACT than the old waypoint state machine.
+    controller = SmoothPickPlaceController(env)
 
     dataset_dir = Path(root) / repo_id
     dataset = LeRobotDataset.create(
