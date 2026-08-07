@@ -71,6 +71,17 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 
 评估结果写入 `outputs/eval_*/rollout.mp4`,控制台报告成功率。
 
+推荐用封装脚本(支持快速模式,中途检查更快):
+
+```bash
+scripts/eval_act.sh                                              # 快速评估 5 回合
+scripts/eval_act.sh outputs/train_act_50ep_100k/checkpoints/025000/pretrained_model 10 --ensemble
+```
+
+默认是**快速模式**(关闭 temporal ensembling,每 100 步调一次策略,约快 100 倍,
+适合训练中途检查);`--ensemble` 才是论文官方的完整评估(每步推理,慢但更准,
+用于最终定稿)。注意:评估会占用 MPS,正在训练时会拖慢训练。
+
 ## 任务与环境
 
 - **动作空间(6D)**:5 个臂关节的绝对角度(rad)+ 夹爪目标 `[0,1]`(0=闭合,1=张开),与 LeRobot 的 SO-100/101 约定一致。

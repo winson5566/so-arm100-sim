@@ -48,9 +48,17 @@ def run_eval(
     seed: int = 0,
     cube_jitter: float = 0.01,
     resize: int = 224,
+    ensemble: bool = True,
 ) -> dict:
     checkpoint_dir = Path(checkpoint_dir)
     policy = ACTPolicy.from_pretrained(checkpoint_dir)
+    if not ensemble:
+        # Quick eval mode: drop temporal ensembling and run chunked inference
+        # (one policy call every 100 steps instead of every step). ~100x fewer
+        # policy calls; fine for mid-training checks, use ensemble=True for the
+        # final official-style numbers.
+        policy.config.temporal_ensemble_coeff = None
+        policy.config.n_action_steps = 100
     policy.eval()
     device = str(policy.config.device)
 
@@ -130,6 +138,11 @@ def main() -> None:
         default=224,
         help="Resize camera images to NxN before the policy (must match training; 0 disables)",
     )
+    parser.add_argument(
+        "--no-ensemble",
+        action="store_true",
+        help="Disable temporal ensembling (fast chunked eval; ~100x fewer policy calls)",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     run_eval(
@@ -141,6 +154,7 @@ def main() -> None:
         seed=args.seed,
         cube_jitter=args.cube_jitter,
         resize=args.resize,
+        ensemble=not args.no_ensemble,
     )
 
 
