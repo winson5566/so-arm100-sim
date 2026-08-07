@@ -49,6 +49,7 @@ def run_eval(
     cube_jitter: float = 0.01,
     resize: int = 224,
     ensemble: bool = True,
+    video_camera: str = "view",
 ) -> dict:
     checkpoint_dir = Path(checkpoint_dir)
     policy = ACTPolicy.from_pretrained(checkpoint_dir)
@@ -69,6 +70,14 @@ def run_eval(
     )
 
     env = SoArm100PickEnv(EnvConfig(cameras=cameras, seed=seed, cube_jitter=cube_jitter))
+    # Record the video from a dedicated third-person camera (clearer than the
+    # overhead observation camera). Falls back to the first observation camera
+    # if the scene has no such camera.
+    try:
+        env.model.camera(video_camera)
+        video_cam_id = env.model.camera(video_camera).id
+    except Exception:
+        video_cam_id = env.camera_ids[cameras[0]]
     video_frames: list[np.ndarray] = []
     successes = 0
     results = []
@@ -80,7 +89,7 @@ def run_eval(
         done = False
         for step in range(max_steps):
             if record_video:
-                ep_frames.append(obs["observation.images.top"])
+                ep_frames.append(env.render(video_cam_id))
             batch = obs_to_batch(obs, cameras, device, resize=resize)
             batch = preprocessor(batch)
             with torch.inference_mode():
@@ -143,6 +152,11 @@ def main() -> None:
         action="store_true",
         help="Disable temporal ensembling (fast chunked eval; ~100x fewer policy calls)",
     )
+    parser.add_argument(
+        "--video-camera",
+        default="view",
+        help="Camera used for the rollout video (default: 'view', a third-person view)",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     run_eval(
@@ -155,6 +169,7 @@ def main() -> None:
         cube_jitter=args.cube_jitter,
         resize=args.resize,
         ensemble=not args.no_ensemble,
+        video_camera=args.video_camera,
     )
 
 

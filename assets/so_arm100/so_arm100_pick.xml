@@ -55,5 +55,9 @@
 
     <!-- Convenience camera for interactive viewing / debugging. -->
     <camera name="side" pos="0.85 -0.75 0.45" xyaxes="1 0 0 0 0.8 0.6" fovy="55" />
+
+    <!-- Third-person view for evaluation videos: shows the arm, cube and target
+         from the front-side at a tight angle (cube ~30px at 640x480). -->
+    <camera name="view" pos="0.60 -0.02 0.58" xyaxes="-0.415005 0.909819 0.000000 -0.553334 -0.252398 0.793799" fovy="40" />
   </worldbody>
 </mujoco>
