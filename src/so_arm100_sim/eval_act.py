@@ -50,6 +50,7 @@ def run_eval(
     resize: int = 224,
     ensemble: bool = True,
     video_camera: str = "view",
+    tail_steps: int = 45,
 ) -> dict:
     checkpoint_dir = Path(checkpoint_dir)
     policy = ACTPolicy.from_pretrained(checkpoint_dir)
@@ -104,6 +105,15 @@ def run_eval(
             action_np = action.to("cpu").numpy().reshape(-1)
             obs, reward, terminated, truncated, info = env.step(action_np)
             if terminated or truncated:
+                if record_video:
+                    # The loop records pre-action frames, so the release that
+                    # triggers success would never appear in the video. Append
+                    # the post-step state (cube placed) plus a short static
+                    # tail so the ending is visible.
+                    final_frame = env.render(video_cam_id)
+                    ep_writer.append_data(final_frame)
+                    for _ in range(tail_steps - 1):
+                        ep_writer.append_data(final_frame)
                 done = True
                 break
         successes += int(info["success"])
@@ -154,6 +164,12 @@ def main() -> None:
         default="view",
         help="Camera used for the rollout video (default: 'view', a third-person view)",
     )
+    parser.add_argument(
+        "--tail-steps",
+        type=int,
+        default=45,
+        help="Static tail frames appended after episode end (1.5s at 30fps)",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     run_eval(
@@ -167,6 +183,7 @@ def main() -> None:
         resize=args.resize,
         ensemble=not args.no_ensemble,
         video_camera=args.video_camera,
+        tail_steps=args.tail_steps,
     )
 
 
