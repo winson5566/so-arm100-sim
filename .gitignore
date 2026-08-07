@@ -14,3 +14,6 @@ outputs/
 # Editors
 .idea/
 .vscode/
+
+# MuJoCo
+MUJOCO_LOG.TXT
