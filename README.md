@@ -104,8 +104,12 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 | 脚本基线(固定位置,5 回合) | 5/5 成功 |
 | 脚本基线(±1 cm 抖动,5 回合) | 5/5 成功 |
 | 数据采集 → LeRobot 数据集 | 格式正确,可被 `lerobot-train` 直接读取 |
-| ACT 训练 5 步(MPS) | 管线跑通,输出 checkpoint(未收敛,成功率 0%,符合预期) |
+| ACT 训练 1500 步(MPS) | loss 15.5→1.5,策略学会“接近”阶段,未收敛(仅 0.65 epoch) |
 | 评估闭环 + 视频 | 正常输出 `rollout.mp4` |
+
+> 说明:本机(Apple Silicon、MPS)上 1500 步只遍历了数据集的 0.65 个 epoch;
+> ACT 要达到可用的抓取成功率通常需要 **30–100 epoch / 数万步**,建议在 GPU 上
+> 训练(配置见 `configs/train_act.yaml`)。
 
 ## 常见问题
 
