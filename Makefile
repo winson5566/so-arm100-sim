@@ -1,0 +1,23 @@
+.PHONY: setup baseline collect train eval clean
+
+PYTHON := .venv/bin/python
+LEROBOT_TRAIN := .venv/bin/lerobot-train
+
+setup: ## Create venv and install dependencies
+	uv venv --python 3.12 .venv
+	uv pip install --python .venv/bin/python -e .
+
+baseline: ## Run the scripted pick & place baseline once
+	PYTHONPATH=src $(PYTHON) -m so_arm100_sim.scripts.run_baseline
+
+collect: ## Collect demonstrations (default: 20 episodes)
+	PYTHONPATH=src $(PYTHON) -m so_arm100_sim.scripts.collect_demos --num-episodes 20
+
+train: ## Train ACT on the collected dataset
+	$(LEROBOT_TRAIN) --config_path=configs/train_act.yaml
+
+eval: ## Evaluate the trained ACT checkpoint in simulation
+	PYTHONPATH=src $(PYTHON) -m so_arm100_sim.scripts.eval_act
+
+clean: ## Remove generated data and outputs
+	$(PYTHON) -c "import shutil; [shutil.rmtree(p) for p in ('data','outputs') if __import__('pathlib').Path(p).exists()]"

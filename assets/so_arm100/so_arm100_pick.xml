@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<!--
+  Single-arm pick-and-place scene for the SO-ARM100 (SO-101) robot.
+
+  Robot model: (c) TheRobotStudio, Apache-2.0 -- see assets/so_arm100/.
+  The SO-101 MJCF from TheRobotStudio/SO-ARM100 is included verbatim below.
+
+  Task layout (workspace is centered in front of the arm, -y direction):
+    - The robot stands on the ground plane (like a desk).
+    - A cube spawns at a configurable position on the ground in front of the arm.
+    - A target zone (thin marker on the ground) marks the drop-off location.
+-->
+<mujoco model="so_arm100_pick">
+  <include file="so101_new_calib.xml" />
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="160" elevation="-20" offwidth="1280" offheight="720" />
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
+    <material name="table_mat" rgba="0.55 0.42 0.30 1" />
+    <material name="cube_mat" rgba="0.85 0.15 0.15 1" />
+    <material name="target_mat" rgba="0.1 0.6 0.3 0.6" />
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
+
+    <!-- Cube to grasp. Position/pose is randomized by the environment on reset. -->
+    <body name="cube" pos="0.02 -0.34 0.015" quat="1 0 0 0">
+      <freejoint name="cube_joint" />
+      <geom name="cube_geom" type="box" size="0.015 0.015 0.015" material="cube_mat" mass="0.03" friction="0.9 0.01 0.001" />
+    </body>
+
+    <!-- Target zone marker on the ground. -->
+    <body name="target" pos="0.06 -0.36 0.0005">
+      <geom name="target_geom" type="box" size="0.035 0.035 0.001" material="target_mat" contype="0" conaffinity="0" />
+    </body>
+
+    <!-- Overhead-ish camera used as observation.images.top -->
+    <camera name="top" pos="0.02 -0.45 0.85" xyaxes="1 0 0 0 0.55 0.835" fovy="70" />
+
+    <!--
+      Wrist camera placeholder. The environment re-positions this camera on
+      the gripper body every frame (MuJoCo does not support attaching cameras
+      to bodies declared in an <include>d model).
+    -->
+    <camera name="wrist" pos="0.02 -0.30 0.30" euler="0 -1.570796 0" fovy="70" />
+
+    <!-- Convenience camera for interactive viewing / debugging. -->
+    <camera name="side" pos="0.85 -0.75 0.45" xyaxes="1 0 0 0 0.8 0.6" fovy="55" />
+  </worldbody>
+</mujoco>
