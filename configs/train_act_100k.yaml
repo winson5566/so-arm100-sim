@@ -1,0 +1,62 @@
+# ACT local quick-run at the official LeRobot "100k steps" budget.
+#
+# LeRobot's docs: "expect a few hours for 100k training steps on a single GPU".
+# On this Mac (MPS, ~8.5 steps/s) 100k steps take ~3-4 hours, i.e. a feasible
+# overnight run. It is the same training budget (100k updates, batch 8) as the
+# official docs recipe; success at this point is usually partial, and the ACT
+# repo advises simply training longer (resume) if the policy is jerky.
+#
+# Everything else matches train_act.yaml (224x224 inputs, temporal ensembling,
+# 50 demos). Checkpoints every 25k steps so you can eval intermediate models.
+dataset:
+  repo_id: local/so_arm100_pick
+  root: data/local/so_arm100_pick
+  eval_split: 0.0
+  image_transforms:
+    enable: true
+    max_num_transforms: 1
+    tfs:
+      resize:
+        type: Resize
+        kwargs:
+          size: [224, 224]
+
+policy:
+  type: act
+  push_to_hub: false
+  device: mps
+  n_obs_steps: 1
+  chunk_size: 100
+  n_action_steps: 1
+  temporal_ensemble_coeff: 0.01
+  vision_backbone: resnet18
+  pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
+  dim_model: 256
+  n_heads: 4
+  dim_feedforward: 1600
+  n_encoder_layers: 4
+  n_decoder_layers: 1
+  use_vae: true
+  latent_dim: 32
+  n_vae_encoder_layers: 4
+  dropout: 0.1
+  kl_weight: 10.0
+  optimizer_lr: 1e-5
+  optimizer_lr_backbone: 1e-5
+  optimizer_weight_decay: 1e-4
+
+steps: 100000
+batch_size: 8
+num_workers: 4
+prefetch_factor: 2
+persistent_workers: true
+log_freq: 1000
+save_freq: 25000
+env_eval_freq: 0
+eval_steps: 0
+seed: 1000
+output_dir: outputs/train_act_50ep_100k
+use_policy_training_preset: true
+
+wandb:
+  enable: false

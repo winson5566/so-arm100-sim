@@ -161,6 +161,13 @@ PYTHONPATH=src .venv/bin/python -m so_arm100_sim.scripts.eval_act \
 > # 150 epochs: --steps=891300
 > ```
 >
+> 更快的起点:官方文档推荐的 **100k 步预算**(50 演示、batch 8,单 GPU 约几小时)。
+> 本机约 3–4 小时,每 25k 步存一个 checkpoint:
+>
+> ```bash
+> .venv/bin/lerobot-train --config_path=configs/train_act_100k.yaml
+> ```
+>
 > 社区经验(SO-100 简单 pick-place、50 演示)通常 100–150 epochs 即可获得
 > 较高的闭环成功率,2000 epochs 是为了逼近论文的 ~90% 上界。
 
