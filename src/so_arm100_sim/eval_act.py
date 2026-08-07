@@ -38,9 +38,10 @@ def run_eval(
     *,
     cameras: tuple[str, ...] = ("top",),
     n_episodes: int = 5,
-    max_steps: int = 700,
+    max_steps: int = 1200,
     record_video: bool = True,
     seed: int = 0,
+    cube_jitter: float = 0.01,
 ) -> dict:
     checkpoint_dir = Path(checkpoint_dir)
     policy = ACTPolicy.from_pretrained(checkpoint_dir)
@@ -53,7 +54,7 @@ def run_eval(
         preprocessor_overrides={"device_processor": {"device": device}},
     )
 
-    env = SoArm100PickEnv(EnvConfig(cameras=cameras, seed=seed))
+    env = SoArm100PickEnv(EnvConfig(cameras=cameras, seed=seed, cube_jitter=cube_jitter))
     video_frames: list[np.ndarray] = []
     successes = 0
     results = []
@@ -105,12 +106,18 @@ def _write_mp4(frames: list[np.ndarray], path: Path, fps: int = 30) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate a trained ACT policy in simulation")
-    parser.add_argument("--checkpoint", default="outputs/train_act/checkpoints/last/pretrained_model")
+    parser.add_argument("--checkpoint", default="outputs/train_act_50ep/checkpoints/last/pretrained_model")
     parser.add_argument("--cameras", default="top")
     parser.add_argument("--num-episodes", type=int, default=5)
-    parser.add_argument("--max-steps", type=int, default=700)
+    parser.add_argument("--max-steps", type=int, default=1200)
     parser.add_argument("--no-video", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--cube-jitter",
+        type=float,
+        default=0.01,
+        help="Uniform cube position jitter in meters (default 0.01 = +/-1cm)",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     run_eval(
@@ -120,6 +127,7 @@ def main() -> None:
         max_steps=args.max_steps,
         record_video=not args.no_video,
         seed=args.seed,
+        cube_jitter=args.cube_jitter,
     )
 
 

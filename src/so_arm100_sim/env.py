@@ -52,7 +52,9 @@ class EnvConfig:
     image_height: int = 480
     image_width: int = 640
     cameras: tuple[str, ...] = ("top",)
-    max_episode_steps: int = 600
+    # Demo episodes take ~900 steps; keep the eval cap above that so a trained
+    # policy is not truncated before it can finish the pick & place.
+    max_episode_steps: int = 1200
     # Workspace geometry.
     table_top_z: float = 0.0
     cube_default_xy: tuple[float, float] = (0.02, -0.34)

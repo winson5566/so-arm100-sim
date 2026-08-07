@@ -1,4 +1,4 @@
-.PHONY: setup baseline collect train eval clean
+.PHONY: setup baseline collect collect50 train eval clean
 
 PYTHON := .venv/bin/python
 LEROBOT_TRAIN := .venv/bin/lerobot-train
@@ -12,6 +12,9 @@ baseline: ## Run the scripted pick & place baseline once
 
 collect: ## Collect demonstrations (default: 20 episodes)
 	PYTHONPATH=src $(PYTHON) -m so_arm100_sim.scripts.collect_demos --num-episodes 20
+
+collect50: ## Collect 50 demonstrations (ACT paper scale) with +/-1cm cube jitter
+	PYTHONPATH=src $(PYTHON) -m so_arm100_sim.scripts.collect_demos --num-episodes 50 --cube-jitter 0.01 --video-codec h264_videotoolbox
 
 train: ## Train ACT on the collected dataset
 	$(LEROBOT_TRAIN) --config_path=configs/train_act.yaml

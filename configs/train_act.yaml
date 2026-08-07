@@ -31,21 +31,25 @@ policy:
   n_vae_encoder_layers: 4
   dropout: 0.1
   kl_weight: 10.0
-  optimizer_lr: 1e-5
-  optimizer_lr_backbone: 1e-5
-  optimizer_weight_decay: 1e-4
+# ACT recipe: 50 demos, 2000 epochs, batch 8 (paper reports ~90% on Transfer Cube).
+# steps = 2000 epochs * ceil(total_frames / batch_size). Value below is computed
+# from the collected 50-episode dataset (see collect50); update it if the
+# episode length changes.
+optimizer_lr: 1e-5
+optimizer_lr_backbone: 1e-5
+optimizer_weight_decay: 1e-4
 
-steps: 3000
+steps: 11550000
 batch_size: 8
-num_workers: 0
+num_workers: 4
 prefetch_factor: 2
-persistent_workers: false
-log_freq: 100
-save_freq: 1000
+persistent_workers: true
+log_freq: 1000
+save_freq: 200000
 env_eval_freq: 0
 eval_steps: 0
 seed: 1000
-output_dir: outputs/train_act
+output_dir: outputs/train_act_50ep
 use_policy_training_preset: true
 
 wandb:

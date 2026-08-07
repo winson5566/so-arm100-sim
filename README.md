@@ -46,9 +46,10 @@ make baseline          # 或 PYTHONPATH=src .venv/bin/python -m so_arm100_sim.sc
 
 ```bash
 make collect           # 默认 20 个成功回合 → data/local/so_arm100_pick
+make collect50         # 50 个成功回合、方块 ±1cm 抖动(ACT 论文配方)
 ```
 
-每个回合约 900 帧(30 Hz),观测包含 `observation.state`(5 关节角 + 夹爪)与 `observation.images.top`(640×480 RGB,MP4 存储),动作是**绝对关节目标**。
+每个回合约 900 帧(30 Hz),观测包含 `observation.state`(5 关节角 + 夹爪)与 `observation.images.top`(640×480 RGB,MP4 存储),动作是**绝对关节目标**。macOS 上默认用 `h264_videotoolbox`(Apple 硬件编码,速度快);其他平台可用 `--video-codec h264`(libx264)或 `libsvtav1`。
 
 ### 3. 训练 ACT
 
@@ -84,11 +85,12 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 - 单任务建议 **50–200 个演示**;回合数越多,ACT 泛化越好。本项目默认 20 个用于快速验证。
 - 在真实/仿真采集时,演示应覆盖目标位置的小范围抖动(`--cube-jitter 0.01` 等),否则策略只会记忆固定轨迹。
 - 相机越多越好(推荐 `--cameras top,wrist`),代价是训练更慢、数据更大。
-- 视频编码默认 `libx264`(快);磁盘敏感可改 `--video-codec libsvtav1`(小)。
+- 视频编码默认 `h264_videotoolbox`(macOS 硬件编码);磁盘敏感可改 `--video-codec libsvtav1`(小)。
+- 每个回合写成独立小 MP4 文件、关键帧间隔 1 s(`g=30`),训练时随机取帧比单个大文件快得多。
 
 ### ACT 训练
 
-- **收敛所需规模**:3000–5000 步、batch 8–32、`dim_model=512`、resnet18 骨干;在 GPU 上数小时,在本机 MPS 上更久。本项目默认配置缩小了 `dim_model`(256)以便本地验证。
+- **ACT 论文配方(Transfer Cube,约 90% 成功率)**:50 个演示、2000 epochs、batch 8。对应到本数据集为 `steps = 2000 × ceil(总帧数/8)`。
 - 训练阶段用 `dataset.eval_split` 留出部分回合评估泛化;本项目演示配置为 0。
 - 评估时在仿真闭环中统计成功率,而不是只看训练损失。
 
@@ -107,16 +109,41 @@ make eval              # 默认读取 outputs/train_act/checkpoints/last/pretrai
 | ACT 训练 1500 步(MPS) | loss 15.5→1.5,策略学会“接近”阶段,未收敛(仅 0.65 epoch) |
 | 评估闭环 + 视频 | 正常输出 `rollout.mp4` |
 
-> 说明:本机(Apple Silicon、MPS)上 1500 步只遍历了数据集的 0.65 个 epoch;
-> ACT 要达到可用的抓取成功率通常需要 **30–100 epoch / 数万步**,建议在 GPU 上
-> 训练(配置见 `configs/train_act.yaml`)。
+## 复刻 ACT 论文配方(50 演示 / 2000 epochs)
+
+1. 采集 50 个演示(含 ±1cm 方块抖动):
+
+   ```bash
+   make collect50
+   ```
+
+2. 训练配置 `configs/train_act.yaml` 已按配方设置:`batch_size=8`、
+   2000 epochs 对应的总步数、`resnet18` 骨干、`dim_model=256`。
+   运行:
+
+   ```bash
+   make train
+   ```
+
+3. 闭环评估(默认读取 `outputs/train_act_50ep` 最新 checkpoint):
+
+   ```bash
+   make eval
+   ```
+
+> **硬件说明**:本机为 Apple Silicon(MPS)。实测训练吞吐约 1.5–3 步/秒,
+> 2000 epochs(约 1150 万步)需要数周至数月,不适合本机完整跑完。要复现论文的
+> ~90% 成功率,建议把本仓库拷贝到带 NVIDIA GPU 的机器/云主机上,执行同样的
+> `make collect50 && make train && make eval`(配置里 `policy.device` 会自动选择
+> `cuda`,无需改代码)。本机训练仍会正常保存 checkpoint,可随时用
+> `--resume true` 续跑。
 
 ## 常见问题
 
 - **`objc: Class AVFFrameReceiver ...` 警告**:PyAV 与 Homebrew ffmpeg 的重复符号警告,无害。
 - **训练时报 `'repo_id' argument missing`**:训练配置里 `policy.push_to_hub` 需为 `false`(本地训练)。
 - **渲染失败/黑屏**:确认 `MUJOCO_GL=glfw`(macOS 默认),或减少相机数量。
-- **采集慢**:视频编码是瓶颈,默认已用 `libx264`;也可减小图像尺寸。
+- **采集慢**:视频编码是瓶颈,macOS 默认已用 `h264_videotoolbox` 硬件编码;也可减小图像尺寸。
 
 ## 参考
 

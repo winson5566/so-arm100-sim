@@ -47,9 +47,17 @@ def collect_dataset(
     cameras: tuple[str, ...] = ("top",),
     cube_jitter: float = 0.0,
     seed: int = 0,
-    video_codec: str = "libx264",
+    video_codec: str = "h264_videotoolbox",
+    keyint: int = 30,
+    video_files_size_in_mb: int = 2,
 ) -> Path:
-    """Collect ``num_episodes`` successful demonstrations into ``root/repo_id``."""
+    """Collect ``num_episodes`` successful demonstrations into ``root/repo_id``.
+
+    ``video_codec`` must be one of the names LeRobot's encoder accepts, e.g.
+    ``"h264_videotoolbox"`` (fast Apple hardware H.264 on macOS),
+    ``"h264"`` (libx264 software) or ``"libsvtav1"``. All of them decode back
+    as plain H.264/AV1, so training never cares which encoder was used.
+    """
     cfg = EnvConfig(cameras=cameras, cube_jitter=cube_jitter, seed=seed)
     env = SoArm100PickEnv(cfg)
     controller = PickPlaceController(env)
@@ -62,7 +70,11 @@ def collect_dataset(
         root=str(dataset_dir),
         robot_type="so101_so_arm100",
         use_videos=True,
-        rgb_encoder=RGBEncoderConfig(vcodec=video_codec, crf=23, preset="medium"),
+        # Frequent keyframes (every 1s) + one small video file per episode make
+        # random frame access during training much faster than a single big file
+        # with sparse keyframes (the default batching was 200MB per file).
+        rgb_encoder=RGBEncoderConfig(vcodec=video_codec, crf=23, preset="medium", g=keyint),
+        video_files_size_in_mb=video_files_size_in_mb,
     )
 
     orig_step = env.step
@@ -129,7 +141,11 @@ def main() -> None:
     parser.add_argument("--cameras", default="top", help="comma-separated camera names")
     parser.add_argument("--cube-jitter", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--video-codec", default="libx264", help="e.g. libx264 (fast) or libsvtav1 (smaller)")
+    parser.add_argument(
+        "--video-codec",
+        default="h264_videotoolbox",
+        help="e.g. h264_videotoolbox (macOS hardware), h264 (libx264) or libsvtav1",
+    )
     args = parser.parse_args()
     cameras = tuple(c.strip() for c in args.cameras.split(",") if c.strip())
     collect_dataset(
